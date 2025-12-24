@@ -239,7 +239,7 @@ func _create_preview(id: String):
 	inst.set_meta("is_preview", true)
 	preview_instance = inst
 	print("Placeables: created preview id=", id, " name=", inst.name)
-	_add_preview_outline(inst)
+	_apply_preview_border(inst)
 
 func _clear_preview():
 	if preview_instance and preview_instance.is_inside_tree():
@@ -247,6 +247,9 @@ func _clear_preview():
 			var out = preview_instance.get_node_or_null("__PreviewOutline")
 			if out:
 				out.queue_free()
+			for child in preview_instance.get_children():
+				if child.name == "__PreviewOutlineMesh":
+					child.queue_free()
 			preview_instance.queue_free()
 			print("Placeables: cleared preview name=", preview_instance.name)
 	preview_instance = null
@@ -261,11 +264,58 @@ func _clear_all_previews():
 			var out = c.get_node_or_null("__PreviewOutline")
 			if out:
 				out.queue_free()
+			for child in c.get_children():
+				if child.name == "__PreviewOutlineMesh":
+					child.queue_free()
 			c.queue_free()
 			count += 1
 	if count > 0:
 		print("Placeables: cleared stray previews count=", count)
 
+var _preview_outline_material: ShaderMaterial = null
+
+func _get_preview_outline_material() -> ShaderMaterial:
+	if _preview_outline_material != null:
+		return _preview_outline_material
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, cull_front;
+uniform float outline_width = 0.03;
+uniform vec4 outline_color : source_color = vec4(1.0,1.0,1.0,1.0);
+void vertex() {
+	VERTEX += NORMAL * outline_width;
+}
+void fragment() {
+	ALBEDO = outline_color.rgb;
+	ALPHA = outline_color.a;
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	_preview_outline_material = mat
+	return _preview_outline_material
+
+func _apply_preview_border(root: Node):
+	# Traverse existing children first to avoid recursing into newly added outline nodes
+	if root is Node:
+		var children := root.get_children()
+		for c in children:
+			if c is MeshInstance3D and c.name == "__PreviewOutlineMesh":
+				continue
+			_apply_preview_border(c)
+	# Then add outline to this mesh if needed
+	if root is MeshInstance3D:
+		var mi: MeshInstance3D = root
+		if mi.name == "__PreviewOutlineMesh":
+			return
+		if mi.mesh and mi.get_node_or_null("__PreviewOutlineMesh") == null:
+			var outline := MeshInstance3D.new()
+			outline.name = "__PreviewOutlineMesh"
+			outline.mesh = mi.mesh
+			outline.material_override = _get_preview_outline_material()
+			outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.add_child(outline)
 func _add_preview_outline(inst: Node3D):
 	var aabb := _compute_preview_aabb(inst)
 	var center := aabb.position + aabb.size * 0.5
