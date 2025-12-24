@@ -72,6 +72,7 @@ func _rebuild_grid():
 
 func _on_item_pressed(id: String):
 	PlacementManager.begin_place(id)
+	_hide_menu()
 
 func _on_remove_toggled(pressed: bool):
 	if pressed:
@@ -80,6 +81,9 @@ func _on_remove_toggled(pressed: bool):
 		PlacementManager.cancel()
 
 func _input(event):
+	if PlacementManager.active:
+		if event.is_action_pressed("open_place_menu") or event.is_action_pressed("cancel_preview"):
+			return
 	if event.is_action_pressed("open_place_menu"):
 		_toggle_menu()
 
@@ -102,6 +106,5 @@ func _hide_menu():
 	visible_menu = false
 	root.visible = false
 	remove_button.button_pressed = false
-	PlacementManager.pause_preview()
 	PlacementManager._update_player_input(true)
 	PlacementManager._show_mouse(false)
