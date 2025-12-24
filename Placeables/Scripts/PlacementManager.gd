@@ -26,7 +26,6 @@ func _spawn_item_instance(id: String, uuid: String, t: Transform3D) -> Node3D:
 	_get_or_create_root().add_child(node, true)
 	node.global_transform = t
 	placed[uuid] = node.get_path()
-	_ensure_collision_for_item(node)
 	print("Placeables: spawned real item id=", id, " uuid=", uuid, " path=", placed[uuid], " pos=", t.origin)
 	return node
 
