@@ -6,7 +6,6 @@
 [ext_resource type="Script" uid="uid://yxesc61whepc" path="res://MainMenu/Scripts/MainMenu.gd" id="4_lbqne"]
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_otibh"]
-load_path = "res://.godot/imported/texture_02.png-5a887d01453b2e868dd3ecca6d8e35dd.s3tc.ctex"
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3p42x"]
 albedo_texture = SubResource("CompressedTexture2D_otibh")
@@ -80,8 +79,7 @@ material = SubResource("ORMMaterial3D_mlc1t")
 
 [node name="TextInWorld" type="Label3D" parent="WorldObjects"]
 transform = Transform3D(1.29687, 0, 0, 0, 0.997594, 0, 0, 0, 0.997594, 0.482055, 2.94659, -6.75206)
-text = "First Person Multiplayer
-MainMenu"
+text = "SimpleBox"
 font_size = 132
 
 [node name="CSGBakedMeshInstance3D" type="MeshInstance3D" parent="WorldObjects"]
@@ -248,7 +246,7 @@ text = "Sensitivity"
 vertical_alignment = 1
 
 [node name="Sensitivity" type="HSlider" parent="MainMenu/SettingsMenu/VBoxContainer/MouseSensitivity/Text"]
-layout_mode = 2
+layout_mode = 0
 offset_left = 94.285
 offset_top = 4.685
 offset_right = 365.085

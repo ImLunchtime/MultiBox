@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3 uid="uid://dws8ybatili7i"]
+
+[ext_resource type="PackedScene" uid="uid://djesj3bbnqkdw" path="res://Assets/Kenney_Models/claw-machine.glb" id="1_8evmq"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_31kov"]
+size = Vector3(0.7025757, 1.0003662, 0.75)
+
+[node name="KClawMachine" type="Node3D"]
+
+[node name="claw-machine2" parent="." instance=ExtResource("1_8evmq")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0027770996, 0.4911499, 0.0029296875)
+shape = SubResource("BoxShape3D_31kov")
