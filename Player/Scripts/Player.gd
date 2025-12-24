@@ -85,10 +85,11 @@ func _input(event):
 	
 	# Mouse look
 	if event is InputEventMouseMotion:
-		rotate_y(-event.relative.x * mouse_sensitivity)
-		if camera:
-			camera.rotate_x(-event.relative.y * mouse_sensitivity)
-			camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+			rotate_y(-event.relative.x * mouse_sensitivity)
+			if camera:
+				camera.rotate_x(-event.relative.y * mouse_sensitivity)
+				camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
 	
 	# Jump input buffering
 	if event.is_action_pressed("jump"):
@@ -176,9 +177,9 @@ func handle_movement(delta):
 		var target_vel = Vector2(wish_dir.x, wish_dir.z) * current_speed
 		
 		if wish_dir.length() > 0:
-			current_vel = current_vel.move_toward(target_vel, ground_acceleration * delta)
+			current_vel = current_vel.move_toward(target_vel, ground_acceleration * 3.0 * delta)
 		else:
-			current_vel = current_vel.move_toward(Vector2.ZERO, ground_deceleration * delta)
+			current_vel = current_vel.move_toward(Vector2.ZERO, ground_deceleration * 3.0 * delta)
 		
 		velocity.x = current_vel.x
 		velocity.z = current_vel.y
@@ -188,7 +189,7 @@ func handle_movement(delta):
 		var target_vel = Vector2(wish_dir.x, wish_dir.z) * current_speed
 		
 		if wish_dir.length() > 0:
-			current_vel = current_vel.move_toward(target_vel, ground_acceleration * air_control * delta)
+			current_vel = current_vel.move_toward(target_vel, ground_acceleration * air_control * 3.0 * delta)
 			velocity.x = current_vel.x
 			velocity.z = current_vel.y
 
@@ -200,13 +201,9 @@ func apply_gravity(delta):
 func update_camera_effects(delta):
 	if not camera: return
 	
-	# Camera tilt when strafing
-	var target_tilt = 0.0
-	if is_moving and is_on_floor():
-		target_tilt = -raw_input_dir.x * camera_tilt_amount
-	
-	camera_tilt = lerp(camera_tilt, target_tilt, delta * sway_smoothness)
-	camera.rotation.z = deg_to_rad(camera_tilt)
+	# Disable camera tilt on strafe
+	camera_tilt = lerp(camera_tilt, 0.0, delta * sway_smoothness)
+	camera.rotation.z = 0.0
 	
 	# FOV changes when sprinting
 	if current_state == MovementState.SPRINTING and raw_input_dir.y < 0:

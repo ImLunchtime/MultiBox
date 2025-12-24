@@ -29,16 +29,13 @@ func _input(event):
 	
 	# Handle mouse movement for camera control
 	if event is InputEventMouseMotion:
-		# Horizontal rotation (turning left/right)
-		player.rotate_y(-event.relative.x * mouse_sensitivity)
-		
-		# Vertical rotation (looking up/down)
-		if player.has_node("Camera3D"):
-			var camera = player.get_node("Camera3D")
-			var vertical_rotation = -event.relative.y * mouse_sensitivity
-			camera.rotate_x(vertical_rotation)
-			# Clamp vertical rotation to prevent over-rotation
-			camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
+		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
+			player.rotate_y(-event.relative.x * mouse_sensitivity)
+			if player.has_node("Camera3D"):
+				var camera = player.get_node("Camera3D")
+				var vertical_rotation = -event.relative.y * mouse_sensitivity
+				camera.rotate_x(vertical_rotation)
+				camera.rotation.x = clamp(camera.rotation.x, deg_to_rad(-90), deg_to_rad(90))
 
 # Physics process - handles movement and state updates
 func _physics_process(delta):
@@ -126,9 +123,9 @@ func handle_movement(delta: float):
 		var target_vel = Vector2(wish_dir.x, wish_dir.z) * current_speed
 		
 		if wish_dir.length() > 0:
-			current_vel = current_vel.move_toward(target_vel, player.ground_acceleration * delta)
+			current_vel = current_vel.move_toward(target_vel, player.ground_acceleration * 3.0 * delta)
 		else:
-			current_vel = current_vel.move_toward(Vector2.ZERO, player.ground_deceleration * delta)
+			current_vel = current_vel.move_toward(Vector2.ZERO, player.ground_deceleration * 3.0 * delta)
 		
 		# Apply horizontal velocity
 		player.velocity.x = current_vel.x
@@ -143,7 +140,7 @@ func handle_movement(delta: float):
 		var target_vel = Vector2(wish_dir.x, wish_dir.z) * current_speed
 		
 		if wish_dir.length() > 0:
-			current_vel = current_vel.move_toward(target_vel, player.ground_acceleration * player.air_control * delta)
+			current_vel = current_vel.move_toward(target_vel, player.ground_acceleration * player.air_control * 3.0 * delta)
 			player.velocity.x = current_vel.x
 			player.velocity.z = current_vel.y
 
