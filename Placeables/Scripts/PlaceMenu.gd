@@ -8,6 +8,7 @@ var visible_menu := false
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_process(true)
 	set_process_input(true)
 	_build_ui()
 	if PlaceableRegistry.has_signal("changed"):
@@ -76,9 +77,14 @@ func _on_item_pressed(id: String):
 
 func _on_remove_toggled(pressed: bool):
 	if pressed:
+		remove_button.text = "Removing"
+		remove_button.modulate = Color(1, 0, 0)
 		PlacementManager.begin_remove()
 	else:
+		remove_button.text = "Remove Mode"
+		remove_button.modulate = Color(1, 1, 1)
 		PlacementManager.cancel()
+		_hide_menu()
 
 func _input(event):
 	if PlacementManager.active:
@@ -86,6 +92,19 @@ func _input(event):
 			return
 	if event.is_action_pressed("open_place_menu"):
 		_toggle_menu()
+
+func _process(delta):
+	if remove_button == null:
+		return
+	var rm := PlacementManager.remove_mode
+	if remove_button.button_pressed != rm:
+		remove_button.button_pressed = rm
+	if rm:
+		remove_button.text = "Removing"
+		remove_button.modulate = Color(1, 0, 0)
+	else:
+		remove_button.text = "Remove Mode"
+		remove_button.modulate = Color(1, 1, 1)
 
 func _toggle_menu():
 	if get_tree().current_scene and get_tree().current_scene.name != "GameMode":

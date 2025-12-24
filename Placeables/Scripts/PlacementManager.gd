@@ -6,6 +6,7 @@ var current_id := ""
 var preview_instance: Node3D = null
 var placed := {}
 var _id_counter := 0
+var _hover_remove_target: Node3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -101,6 +102,7 @@ func begin_place(id: String):
 	_update_player_input(true)
 	_show_mouse(false)
 	_clear_all_previews()
+	_clear_remove_highlight()
 	print("Placeables: begin_place id=", id)
 	_create_preview(id)
 
@@ -112,6 +114,7 @@ func begin_remove():
 	_update_player_input(false)
 	_show_mouse(true)
 	_clear_all_previews()
+	_clear_remove_highlight()
 	print("Placeables: begin_remove")
 	_clear_preview()
 
@@ -123,6 +126,7 @@ func cancel():
 	_update_player_input(true)
 	_show_mouse(false)
 	_clear_preview()
+	_clear_remove_highlight()
 
 func pause_preview():
 	active = false
@@ -136,6 +140,15 @@ func _process(delta):
 	if not active:
 		return
 	if remove_mode:
+		var hit = _raycast_from_mouse(100.0)
+		var node: Node3D = null
+		if hit and hit.collider:
+			node = _get_placeable_root(hit.collider)
+		if node != _hover_remove_target:
+			_clear_remove_highlight()
+			if node:
+				_apply_remove_border(node)
+				_hover_remove_target = node
 		return
 	if preview_instance:
 		var res = _raycast_from_center(50.0)
@@ -154,29 +167,31 @@ func _process(delta):
 func _input(event):
 	if not active:
 		return
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if remove_mode:
-				var hit = _raycast_from_center(100.0)
-				if hit and hit.collider:
-					var node = _get_placeable_root(hit.collider)
+	if event is InputEventMouseButton:
+		if event.pressed:
+			if event.button_index == MOUSE_BUTTON_LEFT:
+				if remove_mode:
+					var node = _hover_remove_target
 					if node:
 						var uuid = _uuid_from_name(node.name)
 						if uuid != "":
 							print("Placeables: request remove uuid=", uuid)
-							server_remove_item.rpc(uuid)
-			else:
-				# In preview placement mode, ignore left click (use E to confirm)
-				pass
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			print("Placeables: right click cancel")
+							_request_remove_item(uuid)
+							_clear_remove_highlight()
+				else:
+					pass
+			elif event.button_index == MOUSE_BUTTON_RIGHT:
+				print("Placeables: right click cancel")
+				cancel()
+	if event.is_action_pressed("open_place_menu") and active:
+		if remove_mode:
+			_exit_remove_mode()
+		else:
+			if preview_instance:
+				var t = preview_instance.global_transform
+				print("Placeables: confirm via E, placing id=", current_id)
+				place_item(current_id, t)
 			cancel()
-	if event.is_action_pressed("open_place_menu") and active and not remove_mode:
-		if preview_instance:
-			var t = preview_instance.global_transform
-			print("Placeables: confirm via E, placing id=", current_id)
-			place_item(current_id, t)
-		cancel()
 	if event.is_action_pressed("cancel_preview") and active:
 		print("Placeables: cancel via Q")
 		cancel()
@@ -209,8 +224,25 @@ func _raycast_from_center(max_distance: float):
 	var to = from + dir * max_distance
 	var space = cam.get_world_3d().direct_space_state
 	var params = PhysicsRayQueryParameters3D.create(from, to)
+	params.collide_with_areas = true
+	params.collide_with_bodies = true
 	var hit = space.intersect_ray(params)
 	return hit
+
+func _raycast_from_mouse(max_distance: float):
+	var cam = _get_local_camera()
+	if not cam:
+		return null
+	var vp = get_viewport()
+	var mp = vp.get_mouse_position()
+	var from = cam.project_ray_origin(mp)
+	var dir = cam.project_ray_normal(mp)
+	var to = from + dir * max_distance
+	var space = cam.get_world_3d().direct_space_state
+	var params = PhysicsRayQueryParameters3D.create(from, to)
+	params.collide_with_areas = true
+	params.collide_with_bodies = true
+	return space.intersect_ray(params)
 
 func _update_player_input(enabled: bool):
 	var scene = get_tree().current_scene
@@ -315,6 +347,80 @@ func _apply_preview_border(root: Node):
 			outline.material_override = _get_preview_outline_material()
 			outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			mi.add_child(outline)
+
+var _remove_outline_material: ShaderMaterial = null
+
+func _get_remove_outline_material() -> ShaderMaterial:
+	if _remove_outline_material != null:
+		return _remove_outline_material
+	var sh := Shader.new()
+	sh.code = """
+shader_type spatial;
+render_mode unshaded, cull_front;
+uniform float outline_width = 0.03;
+uniform vec4 outline_color : source_color = vec4(1.0,0.0,0.0,1.0);
+void vertex() {
+	VERTEX += NORMAL * outline_width;
+}
+void fragment() {
+	ALBEDO = outline_color.rgb;
+	ALPHA = outline_color.a;
+}
+"""
+	var mat := ShaderMaterial.new()
+	mat.shader = sh
+	_remove_outline_material = mat
+	return _remove_outline_material
+
+func _apply_remove_border(root: Node):
+	if root is Node:
+		var children := root.get_children()
+		for c in children:
+			if c is MeshInstance3D and c.name == "__RemoveOutlineMesh":
+				continue
+			_apply_remove_border(c)
+	if root is MeshInstance3D:
+		var mi: MeshInstance3D = root
+		if mi.name == "__RemoveOutlineMesh":
+			return
+		if mi.mesh and mi.get_node_or_null("__RemoveOutlineMesh") == null:
+			var outline := MeshInstance3D.new()
+			outline.name = "__RemoveOutlineMesh"
+			outline.mesh = mi.mesh
+			outline.material_override = _get_remove_outline_material()
+			outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.add_child(outline)
+
+func _clear_remove_highlight():
+	if _hover_remove_target and _hover_remove_target.is_inside_tree():
+		_remove_outline_recursive(_hover_remove_target)
+	_hover_remove_target = null
+
+func _remove_outline_recursive(n: Node):
+	if n is Node:
+		for c in n.get_children():
+			_remove_outline_recursive(c)
+	if n is MeshInstance3D:
+		var rem = n.get_node_or_null("__RemoveOutlineMesh")
+		if rem:
+			rem.queue_free()
+
+func _request_remove_item(uuid: String):
+	if multiplayer.has_multiplayer_peer():
+		if multiplayer.is_server():
+			server_remove_item(uuid)
+		else:
+			server_remove_item.rpc(uuid)
+	else:
+		var node = _find_placeable_by_uuid(uuid)
+		if node:
+			placed.erase(uuid)
+			node.queue_free()
+func _exit_remove_mode():
+	remove_mode = false
+	_clear_remove_highlight()
+	if typeof(PlaceMenu) != TYPE_NIL:
+		PlaceMenu._hide_menu()
 func _add_preview_outline(inst: Node3D):
 	var aabb := _compute_preview_aabb(inst)
 	var center := aabb.position + aabb.size * 0.5
