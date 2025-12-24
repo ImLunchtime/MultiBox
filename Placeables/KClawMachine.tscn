@@ -3,12 +3,13 @@
 [ext_resource type="PackedScene" uid="uid://djesj3bbnqkdw" path="res://Assets/Kenney_Models/claw-machine.glb" id="1_8evmq"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_31kov"]
-size = Vector3(0.7025757, 1.0003662, 0.75)
+size = Vector3(1.3870163, 1.9352112, 1.4231262)
 
 [node name="KClawMachine" type="Node3D"]
 
 [node name="claw-machine2" parent="." instance=ExtResource("1_8evmq")]
+transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0027770996, 0.4911499, 0.0029296875)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00011062622, 0.9585724, -0.0060577393)
 shape = SubResource("BoxShape3D_31kov")

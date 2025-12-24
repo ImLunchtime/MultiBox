@@ -26,6 +26,7 @@ func _spawn_item_instance(id: String, uuid: String, t: Transform3D) -> Node3D:
 	_get_or_create_root().add_child(node, true)
 	node.global_transform = t
 	placed[uuid] = node.get_path()
+	_ensure_collision_for_item(node)
 	print("Placeables: spawned real item id=", id, " uuid=", uuid, " path=", placed[uuid], " pos=", t.origin)
 	return node
 
@@ -342,6 +343,47 @@ func _disable_collision_recursive(n: Node):
 		n.collision_mask = 0
 	for c in n.get_children():
 		_disable_collision_recursive(c)
+
+func _has_collision_recursive(n: Node) -> bool:
+	if n is CollisionObject3D:
+		return true
+	if n is Node:
+		for c in n.get_children():
+			if _has_collision_recursive(c):
+				return true
+	return false
+
+func _normalize_collision_recursive(n: Node):
+	if n is CollisionObject3D:
+		var co: CollisionObject3D = n
+		if co.collision_layer == 0:
+			co.collision_layer = 1
+		if co.collision_mask == 0:
+			co.collision_mask = 1
+	if n is Node:
+		for c in n.get_children():
+			_normalize_collision_recursive(c)
+
+func _ensure_collision_for_item(inst: Node3D):
+	if _has_collision_recursive(inst):
+		_normalize_collision_recursive(inst)
+		print("Placeables: normalized existing colliders for ", inst.name)
+		return
+	var aabb := _compute_preview_aabb(inst)
+	var center := aabb.position + aabb.size * 0.5
+	var body := StaticBody3D.new()
+	body.name = "__AutoStaticBody"
+	body.collision_layer = 1
+	body.collision_mask = 1
+	var shape := BoxShape3D.new()
+	shape.size = aabb.size
+	var col := CollisionShape3D.new()
+	col.name = "__AutoCollision"
+	col.shape = shape
+	body.transform.origin = center
+	body.add_child(col)
+	inst.add_child(body)
+	print("Placeables: added auto collider to ", inst.name, " size=", aabb.size, " center=", center)
 
 func _get_or_create_root() -> Node3D:
 	var scene = get_tree().current_scene
