@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://c350sedrdgsyt"]
+
+[ext_resource type="PackedScene" uid="uid://xskd0svg88q0" path="res://Assets/Kenney_Models/cash-register.glb" id="1_fq4kv"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_303w7"]
+size = Vector3(2.7783852, 1.6816101, 1.555542)
+
+[node name="KCashRegister" type="StaticBody3D"]
+
+[node name="cash-register2" parent="." instance=ExtResource("1_fq4kv")]
+transform = Transform3D(3, 0, 0, 0, 3, 0, 0, 0, 3, 0, 0, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01621437, 0.83195496, 0.012145996)
+shape = SubResource("BoxShape3D_303w7")
